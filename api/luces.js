@@ -9,7 +9,7 @@ export default async function handler(req, res) {
       "https://uxphxdnksb1vpwehpovjgga7ydmldnhv.ui.nabu.casa/api/states/sensor.contador_de_luces_prendidas",
       {
         headers: {
-          Authorization: "Bearer TU_TOKEN_AQUI"
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI4OTJiN2ZmMjYwYzM0ZDY0YTU1MGEzYzk3NjA4YmRhYSIsImlhdCI6MTc3MzI1NTU1NiwiZXhwIjoyMDg4NjE1NTU2fQ.zJJPxQAlB9rliDdDcttRkeOLtRysFtxCInvT5ralqnE"
         }
       }
     );
