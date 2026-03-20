@@ -1,34 +1,55 @@
-
 export default async function handler(req, res) {
   const HA_URL = "https://uxphxdnksb1vpwehpovjgga7ydmldnhv.ui.nabu.casa";
-  const TOKEN = process.env.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI4OTJiN2ZmMjYwYzM0ZDY0YTU1MGEzYzk3NjA4YmRhYSIsImlhdCI6MTc3MzI1NTU1NiwiZXhwIjoyMDg4NjE1NTU2fQ.zJJPxQAlB9rliDdDcttRkeOLtRysFtxCInvT5ralqnE; // usa env
+  const TOKEN = process.env.HA_TOKEN; // 👈 IMPORTANTE
 
   try {
-    // 1. Obtener el grupo
+    // Validar token
+    if (!TOKEN) {
+      return res.status(500).json({ error: "Falta configurar HA_TOKEN en Vercel" });
+    }
+
+    // 1. Obtener grupo
     const groupRes = await fetch(`${HA_URL}/api/states/light.luces_group`, {
       headers: {
         Authorization: `Bearer ${TOKEN}`,
       },
     });
 
+    if (!groupRes.ok) {
+      const text = await groupRes.text();
+      return res.status(500).json({
+        error: "Error consultando el grupo",
+        status: groupRes.status,
+        detalle: text,
+      });
+    }
+
     const groupData = await groupRes.json();
-    const luces = groupData.attributes.entity_id || [];
+    const luces = groupData?.attributes?.entity_id || [];
 
     // 2. Obtener estado de cada luz
     const resultados = await Promise.all(
       luces.map(async (luz) => {
-        const r = await fetch(`${HA_URL}/api/states/${luz}`, {
-          headers: {
-            Authorization: `Bearer ${TOKEN}`,
-          },
-        });
+        try {
+          const r = await fetch(`${HA_URL}/api/states/${luz}`, {
+            headers: {
+              Authorization: `Bearer ${TOKEN}`,
+            },
+          });
 
-        const d = await r.json();
+          if (!r.ok) {
+            return { id: luz, estado: "error" };
+          }
 
-        return {
-          id: luz,
-          estado: d?.state || "unknown",
-        };
+          const d = await r.json();
+
+          return {
+            id: luz,
+            estado: d?.state || "unknown",
+          };
+        } catch {
+          return { id: luz, estado: "error" };
+        }
       })
     );
 
@@ -44,7 +65,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     res.status(500).json({
-      error: "Error consultando Home Assistant",
+      error: "Error general",
       detalle: error.message,
     });
   }
