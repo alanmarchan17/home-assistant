@@ -1,32 +1,50 @@
-<div id="lista-luces"></div>
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
 
-<script>
-async function cargar() {
-  const contenedor = document.getElementById("lista-luces");
+  const HA_URL = "https://uxphxdnksb1vpwehpovjgga7ydmldnhv.ui.nabu.casa";
+  const TOKEN = process.env.HA_TOKEN;
 
   try {
-    const res = await fetch("https://project-hqt6g.vercel.app/api/lucesgroup");
-    const data = await res.json();
-
-    if (data.luces.length === 0) {
-      contenedor.innerHTML = "Todo apagado 😴";
-      return;
+    if (!TOKEN) {
+      return res.status(500).json({ error: "Falta configurar HA_TOKEN en Vercel" });
     }
 
-    contenedor.innerHTML = "<ul>" +
-      data.luces.map(l => {
-        const nombre = l.id
-          .replace("light.", "")
-          .replaceAll("_", " ");
-        return `<li>💡 ${nombre}</li>`;
-      }).join("") +
-      "</ul>";
+    const groupRes = await fetch(`${HA_URL}/api/states/light.luces_group`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
 
-  } catch (e) {
-    contenedor.innerHTML = "Error cargando luces ❌";
+    if (!groupRes.ok) {
+      return res.status(500).json({ error: "Error consultando el grupo" });
+    }
+
+    const groupData = await groupRes.json();
+    const luces = groupData?.attributes?.entity_id || [];
+
+    const statesRes = await fetch(`${HA_URL}/api/states`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+
+    const allStates = await statesRes.json();
+
+    const encendidas = luces
+      .map((luz) => {
+        const estado = allStates.find(e => e.entity_id === luz);
+        return {
+          id: luz,
+          estado: estado?.state || "unknown",
+        };
+      })
+      .filter(l => l.estado === "on");
+
+    res.status(200).json({
+      total_encendidas: encendidas.length,
+      luces: encendidas,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: "Error general",
+      detalle: error.message,
+    });
   }
 }
-
-cargar();
-setInterval(cargar, 5000);
-</script>
