@@ -5,17 +5,12 @@ export default async function handler(req, res) {
   const TOKEN = process.env.HA_TOKEN;
 
   try {
-    if (!TOKEN) {
-      return res.status(500).json({ error: "Falta configurar HA_TOKEN en Vercel" });
-    }
+    if (!TOKEN) return res.status(500).send("Falta configurar HA_TOKEN en Vercel");
 
     const groupRes = await fetch(`${HA_URL}/api/states/light.luces_group`, {
       headers: { Authorization: `Bearer ${TOKEN}` },
     });
-
-    if (!groupRes.ok) {
-      return res.status(500).json({ error: "Error consultando el grupo" });
-    }
+    if (!groupRes.ok) return res.status(500).send("Error consultando el grupo");
 
     const groupData = await groupRes.json();
     const luces = groupData?.attributes?.entity_id || [];
@@ -23,28 +18,19 @@ export default async function handler(req, res) {
     const statesRes = await fetch(`${HA_URL}/api/states`, {
       headers: { Authorization: `Bearer ${TOKEN}` },
     });
-
     const allStates = await statesRes.json();
 
     const encendidas = luces
-      .map((luz) => {
+      .map(luz => {
         const estado = allStates.find(e => e.entity_id === luz);
-        return {
-          id: luz,
-          estado: estado?.state || "unknown",
-        };
+        return { id: luz.replace("light.", "").replace(/_/g, " "), estado: (estado?.state || "unknown").toUpperCase() };
       })
-      .filter(l => l.estado === "on");
+      .filter(l => l.estado === "ON");
 
-    res.status(200).json({
-      total_encendidas: encendidas.length,
-      luces: encendidas,
-    });
+    const lista = encendidas.map(l => `💡 ${l.id}: ${l.estado}`).join("\n");
 
+    res.status(200).send(lista || "No hay luces encendidas");
   } catch (error) {
-    res.status(500).json({
-      error: "Error general",
-      detalle: error.message,
-    });
+    res.status(500).send("Error general: " + error.message);
   }
 }
