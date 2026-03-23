@@ -1,7 +1,6 @@
 export default async function handler(req, res) {
   const HA_URL = "https://uxphxdnksb1vpwehpovjgga7ydmldnhv.ui.nabu.casa";
   const TOKEN = process.env.HA_TOKEN; // 👈 IMPORTANTE
-
   try {
     // Validar token
     if (!TOKEN) {
